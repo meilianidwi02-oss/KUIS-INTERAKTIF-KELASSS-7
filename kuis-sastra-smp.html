@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuis Sastra — Bahasa Indonesia SMP</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1209;
+    --paper: #fdf6e3;
+    --aged: #e8d9b5;
+    --rust: #c0392b;
+    --gold: #d4a017;
+    --sage: #4a7c59;
+    --muted: #7a6a50;
+    --correct: #27ae60;
+    --wrong: #e74c3c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--ink); color: var(--paper); min-height: 100vh; overflow-x: hidden; }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ─── MUSIC TOGGLE ─── */
+  #music-btn {
+    position: fixed; top: 14px; right: 14px; z-index: 999;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: var(--gold); font-size: 1.1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s;
+  }
+  #music-btn:hover { background: rgba(255,255,255,0.15); }
+
+  /* ─── INTRO CINEMATIC ─── */
+  #intro {
+    align-items: center; justify-content: center;
+    background: #0b0804;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .stars-layer {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 20% 30%, #1e120400 0%, #0b0804 70%);
+  }
+  /* Particle stars via box-shadow */
+  .star { position: absolute; border-radius: 50%; background: #fff; animation: twinkle var(--d,3s) ease-in-out infinite var(--delay,0s); }
+  @keyframes twinkle { 0%,100%{opacity:0.15;transform:scale(1)} 50%{opacity:0.9;transform:scale(1.4)} }
+
+  .intro-content {
+    position: relative; z-index: 2;
+    text-align: center; padding: 2rem;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0;
+  }
+
+  /* Animated book open */
+  .book-wrap { position: relative; width: 120px; height: 100px; margin-bottom: 2rem; }
+  .book-left, .book-right {
+    position: absolute; bottom: 0; width: 55px; height: 80px;
+    border-radius: 4px;
+    animation-fill-mode: both;
+  }
+  .book-left {
+    right: 50%; background: linear-gradient(135deg, #8b5e1a, #5a3a0a);
+    transform-origin: right bottom;
+    animation: openLeft 1.2s 0.3s cubic-bezier(.4,0,.2,1) forwards;
+    box-shadow: -4px 4px 16px rgba(0,0,0,0.5);
+  }
+  .book-right {
+    left: 50%; background: linear-gradient(225deg, #a0711f, #6b4610);
+    transform-origin: left bottom;
+    animation: openRight 1.2s 0.3s cubic-bezier(.4,0,.2,1) forwards;
+    box-shadow: 4px 4px 16px rgba(0,0,0,0.5);
+  }
+  @keyframes openLeft  { from{transform:rotateY(0deg)} to{transform:rotateY(-45deg)} }
+  @keyframes openRight { from{transform:rotateY(0deg)} to{transform:rotateY(45deg)} }
+  .book-spine {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 14px; height: 80px; bottom: 0;
+    background: linear-gradient(180deg, #c8941f, #7a4e0d);
+    border-radius: 2px;
+  }
+  .book-glow {
+    position: absolute; left: 50%; top: -20px; transform: translateX(-50%);
+    width: 60px; height: 60px;
+    background: radial-gradient(circle, rgba(212,160,23,0.6) 0%, transparent 70%);
+    animation: glowPulse 2s 1.5s ease-in-out infinite;
+  }
+  @keyframes glowPulse { 0%,100%{opacity:0.4;transform:translateX(-50%) scale(1)} 50%{opacity:1;transform:translateX(-50%) scale(1.3)} }
+
+  .intro-eyebrow {
+    font-size: 0.72rem; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); opacity: 0;
+    animation: fadeUp 0.7s 1.2s ease forwards;
+    margin-bottom: 0.6rem;
+  }
+  .intro-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 10vw, 5.5rem);
+    line-height: 0.95;
+    color: var(--paper);
+    opacity: 0;
+    animation: fadeUp 0.8s 1.5s ease forwards;
+    margin-bottom: 0.4rem;
+  }
+  .intro-title span { color: var(--gold); }
+  .intro-subtitle {
+    font-size: 0.95rem; color: #8a7a60;
+    opacity: 0;
+    animation: fadeUp 0.7s 1.9s ease forwards;
+    margin-bottom: 2.5rem;
+  }
+
+  .intro-tap {
+    opacity: 0;
+    animation: fadeUp 0.6s 2.4s ease forwards;
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  }
+  .tap-hint {
+    font-size: 0.78rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: #5a4a30;
+    animation: blink 1.8s 3s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+  .btn-enter {
+    background: transparent;
+    border: 1.5px solid rgba(212,160,23,0.5);
+    color: var(--gold);
+    border-radius: 99px;
+    padding: 0.7rem 2.2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem; font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  .btn-enter:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+  /* floating lines deco */
+  .deco-line {
+    position: absolute; height: 1px; background: linear-gradient(90deg, transparent, rgba(212,160,23,0.3), transparent);
+    animation: scanLine 4s ease-in-out infinite;
+  }
+  @keyframes scanLine { 0%,100%{opacity:0;transform:scaleX(0.3)} 50%{opacity:1;transform:scaleX(1)} }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ─── QUIZ SCREEN ─── */
+  #quiz {
+    background: var(--paper);
+    color: var(--ink);
+    padding: 1.5rem;
+    align-items: center;
+  }
+  .quiz-header {
+    width: 100%; max-width: 640px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .q-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .score-pill { background: var(--ink); color: var(--gold); border-radius: 99px; padding: 0.3rem 0.9rem; font-size: 0.85rem; font-weight: 600; }
+  .progress-bar { width: 100%; max-width: 640px; height: 5px; background: var(--aged); border-radius: 99px; margin-bottom: 1.5rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--rust)); border-radius: 99px; transition: width 0.4s ease; }
+  .card { background: #fff; border: 1.5px solid var(--aged); border-radius: 16px; padding: 2rem; width: 100%; max-width: 640px; box-shadow: 4px 4px 0 var(--aged); animation: slideIn 0.35s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  .q-type-tag { display: inline-block; color: var(--paper); border-radius: 4px; padding: 0.2rem 0.6rem; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+  .q-type-tag.pilgan { background: var(--sage); }
+  .q-type-tag.susun { background: var(--rust); }
+  .q-type-tag.tebak { background: #7b3f9e; }
+  .q-type-tag.benarsalah { background: #1a6e8e; }
+
+  .excerpt { font-family: 'Playfair Display', serif; font-style: italic; background: var(--paper); border-left: 3px solid var(--gold); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin-bottom: 1.2rem; font-size: 0.95rem; line-height: 1.8; color: #3a2c1a; white-space: pre-line; }
+  .question-text { font-size: 1rem; font-weight: 600; line-height: 1.5; margin-bottom: 1.2rem; color: var(--ink); }
+
+  .options { display: flex; flex-direction: column; gap: 0.6rem; }
+  .opt { background: var(--paper); border: 1.5px solid var(--aged); border-radius: 10px; padding: 0.75rem 1rem; cursor: pointer; font-size: 0.95rem; transition: all 0.15s; text-align: left; display: flex; align-items: center; gap: 0.75rem; font-family: 'DM Sans', sans-serif; }
+  .opt:hover:not(:disabled) { border-color: var(--gold); background: #fffbf0; }
+  .opt .opt-key { width: 28px; height: 28px; border-radius: 50%; background: var(--aged); color: var(--ink); font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .opt.correct { border-color: var(--correct); background: #eafaf1; }
+  .opt.correct .opt-key { background: var(--correct); color: #fff; }
+  .opt.wrong { border-color: var(--wrong); background: #fdedec; }
+  .opt.wrong .opt-key { background: var(--wrong); color: #fff; }
+  .opt:disabled { cursor: default; }
+
+  .word-pool { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; min-height: 44px; }
+  .word-answer { display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 48px; background: var(--paper); border: 1.5px dashed var(--aged); border-radius: 10px; padding: 0.6rem; margin-bottom: 1rem; }
+  .word-chip { background: var(--ink); color: var(--paper); border: none; border-radius: 6px; padding: 0.45rem 0.85rem; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; cursor: pointer; transition: transform 0.1s; }
+  .word-chip:hover { transform: scale(1.05); }
+  .word-chip.in-answer { background: var(--sage); }
+  .word-chip.correct-chip { background: var(--correct); }
+  .word-chip.wrong-chip { background: var(--wrong); }
+
+  .blanks { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .blank-box { width: 40px; height: 48px; border-bottom: 2.5px solid var(--ink); font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: center; color: var(--ink); transition: border-color 0.2s; }
+  .blank-box.filled { border-color: var(--gold); }
+  .blank-box.correct-box { border-color: var(--correct); color: var(--correct); }
+  .blank-box.wrong-box { border-color: var(--wrong); color: var(--wrong); }
+  .hint-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+  .letter-btn { width: 36px; height: 36px; border-radius: 6px; background: var(--paper); border: 1.5px solid var(--aged); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.12s; font-family: 'DM Sans', sans-serif; }
+  .letter-btn:hover:not(:disabled) { background: var(--gold); border-color: var(--gold); }
+  .letter-btn:disabled { opacity: 0.35; cursor: default; }
+
+  .bs-btn-row { display: flex; gap: 1rem; }
+  .bs-btn { flex: 1; padding: 1rem; border-radius: 10px; border: 2px solid var(--aged); font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .bs-btn.benar { background: #eafaf1; color: var(--correct); border-color: #b7e8c8; }
+  .bs-btn.benar:hover:not(:disabled) { background: var(--correct); color: #fff; border-color: var(--correct); }
+  .bs-btn.salah { background: #fdedec; color: var(--wrong); border-color: #f5b7b1; }
+  .bs-btn.salah:hover:not(:disabled) { background: var(--wrong); color: #fff; border-color: var(--wrong); }
+  .bs-btn:disabled { cursor: default; }
+
+  .feedback { margin-top: 1rem; padding: 0.8rem 1rem; border-radius: 10px; font-size: 0.9rem; line-height: 1.5; display: none; }
+  .feedback.show { display: block; animation: fadeIn 0.25s; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .feedback.ok { background: #eafaf1; border: 1px solid #b7e8c8; color: #1e7b45; }
+  .feedback.fail { background: #fdedec; border: 1px solid #f5b7b1; color: #c0392b; }
+
+  .btn-next { margin-top: 1.2rem; width: 100%; background: var(--ink); color: var(--paper); border: none; border-radius: 10px; padding: 0.85rem; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; display: none; }
+  .btn-next.show { display: block; }
+  .btn-next:hover { background: #2c1e0e; }
+
+  .susun-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.4rem; }
+
+  /* ─── RESULT ─── */
+  #result {
+    align-items: center; justify-content: center;
+    text-align: center; padding: 2rem;
+    background: #0b0804;
+    color: var(--paper);
+    overflow: hidden;
+  }
+  .result-inner { position: relative; z-index: 2; max-width: 440px; }
+  .result-emoji { font-size: 4rem; margin-bottom: 1rem; animation: popIn 0.5s cubic-bezier(.4,0,.2,1); }
+  @keyframes popIn { from{transform:scale(0)} to{transform:scale(1)} }
+  .result-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: var(--gold); margin-bottom: 0.5rem; }
+  .result-score { font-size: 3.5rem; font-weight: 700; color: var(--paper); margin: 1rem 0; }
+  .result-sub { color: #8a7a60; font-size: 0.95rem; margin-bottom: 2rem; }
+  .result-bars { margin-bottom: 2rem; }
+  .rbar { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.6rem; font-size: 0.85rem; text-align: left; }
+  .rbar-label { width: 100px; color: #c5b89a; }
+  .rbar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+  .rbar-fill { height: 100%; border-radius: 99px; background: var(--gold); }
+  .rbar-val { width: 32px; color: var(--gold); font-weight: 600; text-align: right; }
+  .btn-retry { background: var(--gold); color: var(--ink); border: none; border-radius: 8px; padding: 0.9rem 2.5rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s; box-shadow: 0 4px 20px rgba(212,160,23,0.35); }
+  .btn-retry:hover { transform: translateY(-2px); }
+
+  /* confetti */
+  .confetti-piece { position: fixed; width: 8px; height: 8px; border-radius: 2px; animation: confettiFall linear forwards; }
+  @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(105vh) rotate(720deg);opacity:0} }
+</style>
+</head>
+<body>
+
+<!-- MUSIC BUTTON -->
+<button id="music-btn" title="Musik On/Off" onclick="toggleMusic()">🎵</button>
+
+<!-- ═══ INTRO SCREEN ═══ -->
+<div id="intro" class="screen active" onclick="enterGame()">
+  <div class="stars-layer"></div>
+
+  <!-- decorative scan lines -->
+  <div class="deco-line" style="top:25%;left:5%;width:35%;--delay:0s"></div>
+  <div class="deco-line" style="top:75%;right:5%;width:28%;--delay:1.5s;animation-direction:reverse"></div>
+
+  <div class="intro-content">
+    <div class="book-wrap">
+      <div class="book-glow"></div>
+      <div class="book-left"></div>
+      <div class="book-right"></div>
+      <div class="book-spine"></div>
+    </div>
+
+    <p class="intro-eyebrow">Bahasa Indonesia · SMP · Sastra</p>
+    <h1 class="intro-title">Dunia<br><span>Sastra</span></h1>
+    <p class="intro-subtitle">Puisi · Cerpen · Majas</p>
+
+    <div class="intro-tap">
+      <button class="btn-enter" onclick="enterGame(); event.stopPropagation();">Masuk ke Kuis →</button>
+      <p class="tap-hint">atau ketuk di mana saja</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ QUIZ SCREEN ═══ -->
+<div id="quiz" class="screen">
+  <div class="quiz-header">
+    <span class="q-label" id="q-counter">Soal 1 / 10</span>
+    <span class="score-pill" id="score-display">⭐ 0</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="card" id="card"></div>
+</div>
+
+<!-- ═══ RESULT SCREEN ═══ -->
+<div id="result" class="screen">
+  <div class="result-inner">
+    <div class="result-emoji" id="result-emoji">🏆</div>
+    <h2 class="result-title" id="result-title">Luar Biasa!</h2>
+    <div class="result-score" id="result-score">0 / 10</div>
+    <p class="result-sub" id="result-sub"></p>
+    <div class="result-bars" id="result-bars"></div>
+    <button class="btn-retry" onclick="retryQuiz()">Coba Lagi 🔄</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   AUDIO ENGINE — Web Audio API
+══════════════════════════════════ */
+let audioCtx = null;
+let musicOn = true;
+let musicNodes = {};
+let sfxEnabled = true;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  startBgMusic();
+}
+
+function startBgMusic() {
+  if (!audioCtx || !musicOn) return;
+  stopBgMusic();
+
+  const master = audioCtx.createGain();
+  master.gain.setValueAtTime(0, audioCtx.currentTime);
+  master.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 2);
+  master.connect(audioCtx.destination);
+
+  // reverb
+  const conv = audioCtx.createConvolver();
+  const revLen = audioCtx.sampleRate * 2.5;
+  const revBuf = audioCtx.createBuffer(2, revLen, audioCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = revBuf.getChannelData(ch);
+    for (let i = 0; i < revLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/revLen, 2.5);
+  }
+  conv.buffer = revBuf;
+  const revGain = audioCtx.createGain();
+  revGain.gain.value = 0.35;
+  conv.connect(revGain);
+  revGain.connect(master);
+
+  const dryGain = audioCtx.createGain();
+  dryGain.gain.value = 0.65;
+  dryGain.connect(master);
+
+  // ── Melody: pentatonic ambient loop (C D E G A)
+  const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00,
+                       523.25, 587.33, 659.25, 783.99, 880.00];
+  const melPattern = [4,6,4,7,6,4,2,4,6,9,7,6,4,6,7,4];
+  let melStep = 0;
+  const bpm = 72;
+  const beat = 60 / bpm;
+
+  function schedNote(freq, time, dur, vel) {
+    const osc = audioCtx.createOscillator();
+    const env = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    env.gain.setValueAtTime(0, time);
+    env.gain.linearRampToValueAtTime(vel, time + 0.05);
+    env.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    osc.connect(env);
+    env.connect(dryGain);
+    env.connect(conv);
+    osc.start(time);
+    osc.stop(time + dur + 0.05);
+  }
+
+  function scheduleMelody(startTime) {
+    for (let i = 0; i < 16; i++) {
+      const idx = melPattern[(melStep + i) % melPattern.length];
+      const freq = pentatonic[idx % pentatonic.length];
+      const t = startTime + i * beat * 0.75;
+      const vel = 0.06 + Math.random() * 0.04;
+      schedNote(freq, t, beat * 1.2, vel);
+      // occasional harmony
+      if (i % 4 === 0) schedNote(freq * 1.5, t + 0.05, beat * 1.5, vel * 0.4);
+    }
+    melStep = (melStep + 16) % melPattern.length;
+  }
+
+  // ── Pad: sustained chords
+  const chords = [[130.81,164.81,196.00],[146.83,184.99,220.00],[123.47,155.56,184.99]];
+  let chordIdx = 0;
+  const padNodes = [];
+
+  function startPad() {
+    const chord = chords[chordIdx % chords.length];
+    chord.forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      env.gain.setValueAtTime(0, audioCtx.currentTime);
+      env.gain.linearRampToValueAtTime(0.025, audioCtx.currentTime + 1.5);
+      osc.connect(env);
+      env.connect(dryGain);
+      env.connect(conv);
+      osc.start();
+      padNodes.push({osc, env});
+    });
+  }
+
+  function fadePad() {
+    padNodes.forEach(({osc, env}) => {
+      env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+      osc.stop(audioCtx.currentTime + 1.6);
+    });
+    padNodes.length = 0;
+    chordIdx++;
+  }
+
+  startPad();
+  let melTime = audioCtx.currentTime;
+  scheduleMelody(melTime);
+  melTime += 16 * beat * 0.75;
+
+  const melTimer = setInterval(() => {
+    if (!musicOn) return;
+    scheduleMelody(melTime);
+    melTime += 16 * beat * 0.75;
+  }, 16 * beat * 0.75 * 1000);
+
+  const padTimer = setInterval(() => {
+    if (!musicOn) return;
+    fadePad();
+    startPad();
+  }, 8000);
+
+  musicNodes = { master, melTimer, padTimer, padNodes };
+}
+
+function stopBgMusic() {
+  if (musicNodes.melTimer) clearInterval(musicNodes.melTimer);
+  if (musicNodes.padTimer) clearInterval(musicNodes.padTimer);
+  if (musicNodes.master) {
+    try {
+      musicNodes.master.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    } catch(e) {}
+  }
+  musicNodes = {};
+}
+
+function toggleMusic() {
+  if (!audioCtx) initAudio();
+  musicOn = !musicOn;
+  document.getElementById('music-btn').textContent = musicOn ? '🎵' : '🔇';
+  if (musicOn) startBgMusic();
+  else stopBgMusic();
+}
+
+// SFX
+function sfxCorrect() {
+  if (!audioCtx || !sfxEnabled) return;
+  const notes = [523.25, 659.25, 783.99];
+  notes.forEach((freq, i) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, audioCtx.currentTime + i*0.08);
+    g.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + i*0.08 + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i*0.08 + 0.35);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(audioCtx.currentTime + i*0.08);
+    o.stop(audioCtx.currentTime + i*0.08 + 0.4);
+  });
+}
+
+function sfxWrong() {
+  if (!audioCtx || !sfxEnabled) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sawtooth'; o.frequency.value = 180;
+  o.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.3);
+  g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 0.38);
+}
+
+function sfxClick() {
+  if (!audioCtx || !sfxEnabled) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine'; o.frequency.value = 880;
+  g.gain.setValueAtTime(0.06, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 0.12);
+}
+
+function sfxComplete() {
+  if (!audioCtx || !sfxEnabled) return;
+  const freqs = [523.25,659.25,783.99,1046.5,1318.5];
+  freqs.forEach((f,i)=>{
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=f;
+    const t=audioCtx.currentTime+i*0.12;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(0.15,t+0.05);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.5);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start(t);o.stop(t+0.55);
+  });
+}
+
+/* ══════════════════════════════════
+   STARS GENERATOR
+══════════════════════════════════ */
+(function() {
+  const intro = document.getElementById('intro');
+  for (let i = 0; i < 90; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random()*2.5+0.5;
+    s.style.cssText = `
+      width:${size}px;height:${size}px;
+      top:${Math.random()*100}%;left:${Math.random()*100}%;
+      --d:${2+Math.random()*4}s;--delay:-${Math.random()*4}s;
+      opacity:${0.1+Math.random()*0.4}
+    `;
+    intro.appendChild(s);
+  }
+})();
+
+/* ══════════════════════════════════
+   QUIZ DATA
+══════════════════════════════════ */
+const QUESTIONS = [
+  {type:"pilgan",excerpt:"Hujan turun rintik-rintik\nMembasahi bumi yang kering\nAku menanti di tepi jendela\nRindu hati tiada terperi",question:"Apa tema utama penggalan puisi di atas?",options:["Kegembiraan saat hujan tiba","Kerinduan dan penantian","Keindahan alam pegunungan","Rasa syukur atas hujan"],answer:1,explanation:"Kata 'menanti', 'rindu', dan 'tiada terperi' menunjukkan tema kerinduan dan penantian.",topic:"Puisi"},
+  {type:"benarsalah",excerpt:null,question:"Rima adalah persamaan bunyi di akhir baris-baris puisi.",answer:true,explanation:"Rima (sajak) adalah pengulangan bunyi yang sama di akhir baris puisi untuk menciptakan efek musikal.",topic:"Puisi"},
+  {type:"susun",excerpt:null,question:"Susun kalimat yang benar tentang majas personifikasi!",words:["Majas","benda","manusia","personifikasi","sifat","mati","memberikan","kepada"],answer:["Majas","personifikasi","memberikan","sifat","manusia","kepada","benda","mati"],explanation:"Majas personifikasi memberikan sifat manusia kepada benda mati, seperti 'angin berbisik lembut'.",topic:"Majas"},
+  {type:"tebak",excerpt:null,question:"Unsur cerpen yang berupa puncak konflik atau titik tertinggi dalam cerita disebut:",answer:"KLIMAKS",hint:"7 huruf, diawali huruf K",topic:"Cerpen"},
+  {type:"pilgan",excerpt:"\"Angin malam berbisik mesra di telingaku,\nmenceritakan kisah-kisah yang terlupakan.\"",question:"Majas yang digunakan dalam kutipan puisi di atas adalah …",options:["Hiperbola","Personifikasi","Metafora","Simile"],answer:1,explanation:"Personifikasi — angin diberi sifat manusia (berbisik, menceritakan) seolah angin adalah makhluk hidup.",topic:"Majas"},
+  {type:"benarsalah",excerpt:null,question:"Sudut pandang orang pertama ditandai dengan penggunaan kata ganti 'dia' atau 'ia' sebagai tokoh utama.",answer:false,explanation:"Sudut pandang orang pertama menggunakan 'aku' atau 'saya'. Kata 'dia/ia' digunakan dalam sudut pandang orang ketiga.",topic:"Cerpen"},
+  {type:"pilgan",excerpt:"Siti meremas tasnya erat-erat. Di luar hujan deras, sementara ia harus tiba di sekolah sebelum pukul tujuh. Tidak ada pilihan — ia berlari sekencang mungkin menerobos hujan.",question:"Unsur intrinsik yang paling menonjol dalam penggalan cerpen di atas adalah …",options:["Tema dan amanat","Latar dan alur","Penokohan dan sudut pandang","Gaya bahasa dan simbol"],answer:1,explanation:"Kutipan tersebut menonjolkan latar (hujan deras, sebelum pukul tujuh) dan alur (konflik waktu yang mendesak).",topic:"Cerpen"},
+  {type:"tebak",excerpt:null,question:"Pilihan kata yang digunakan penyair dalam puisi untuk menghasilkan efek tertentu disebut:",answer:"DIKSI",hint:"5 huruf, diawali D",topic:"Puisi"},
+  {type:"susun",excerpt:null,question:"Susun urutan alur cerpen yang benar dari awal hingga akhir!",words:["Konflik","Pengenalan","Penyelesaian","Klimaks","Komplikasi"],answer:["Pengenalan","Konflik","Komplikasi","Klimaks","Penyelesaian"],explanation:"Urutan alur: Pengenalan → Konflik → Komplikasi → Klimaks → Penyelesaian.",topic:"Cerpen"},
+  {type:"pilgan",excerpt:"Jangan kau sia-siakan waktu muda\nSebelum usia tua datang menjemput\nIlmu dan bakti jadi bekalmu\nDi dunia yang terus berlanjut",question:"Amanat yang terkandung dalam puisi di atas adalah …",options:["Bersenang-senanglah selagi muda","Manfaatkan masa muda untuk menuntut ilmu dan berbuat baik","Hindari pergaulan yang tidak baik","Carilah pekerjaan sebelum tua"],answer:1,explanation:"Puisi mengamanatkan agar kita memanfaatkan masa muda dengan menuntut ilmu dan beramal, karena waktu terus berjalan.",topic:"Puisi"}
+];
+
+function shuffle(arr) { return [...arr].sort(()=>Math.random()-0.5); }
+
+let questions, qIndex, score, topicStats;
+
+function enterGame() {
+  initAudio();
+  sfxClick();
+  startQuiz();
+}
+
+function startQuiz() {
+  questions = shuffle(QUESTIONS);
+  qIndex = 0; score = 0; topicStats = {};
+  showScreen('quiz');
+  renderQuestion();
+}
+
+function retryQuiz() {
+  sfxClick();
+  if (!audioCtx) initAudio();
+  if (musicOn) startBgMusic();
+  startQuiz();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderQuestion() {
+  const q = questions[qIndex];
+  const total = questions.length;
+  document.getElementById('q-counter').textContent = "Soal "+(qIndex+1)+" / "+total;
+  document.getElementById('score-display').textContent = "⭐ "+score;
+  document.getElementById('progress-fill').style.width = ((qIndex/total)*100)+"%";
+
+  const card = document.getElementById('card');
+  card.innerHTML = '';
+
+  const tagLabels = {pilgan:'Pilihan Ganda',susun:'Susun Kalimat',tebak:'Tebak Kata',benarsalah:'Benar / Salah'};
+  const tag = document.createElement('span');
+  tag.className = 'q-type-tag '+q.type;
+  tag.textContent = tagLabels[q.type];
+  card.appendChild(tag);
+
+  if (q.excerpt) {
+    const ex = document.createElement('div');
+    ex.className = 'excerpt';
+    ex.textContent = q.excerpt;
+    card.appendChild(ex);
+  }
+
+  const qt = document.createElement('p');
+  qt.className = 'question-text';
+  qt.textContent = q.question;
+  card.appendChild(qt);
+
+  if (q.type==='pilgan') buildPilgan(card,q);
+  else if (q.type==='benarsalah') buildBenarSalah(card,q);
+  else if (q.type==='susun') buildSusun(card,q);
+  else if (q.type==='tebak') buildTebak(card,q);
+
+  const fb = document.createElement('div');
+  fb.className = 'feedback'; fb.id = 'feedback';
+  card.appendChild(fb);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-next'; btn.id = 'btn-next';
+  btn.textContent = qIndex < questions.length-1 ? 'Soal Berikutnya →' : 'Lihat Hasil 🏆';
+  btn.onclick = nextQuestion;
+  card.appendChild(btn);
+}
+
+function showFeedback(correct, msg) {
+  if (correct) sfxCorrect(); else sfxWrong();
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show '+(correct?'ok':'fail');
+  fb.textContent = (correct?'✅ ':'❌ ')+msg;
+  document.getElementById('btn-next').classList.add('show');
+}
+
+function recordResult(topic, correct) {
+  if (!topicStats[topic]) topicStats[topic] = {total:0,correct:0};
+  topicStats[topic].total++;
+  if (correct) { topicStats[topic].correct++; score++; }
+  document.getElementById('score-display').textContent = "⭐ "+score;
+}
+
+function nextQuestion() {
+  sfxClick();
+  qIndex++;
+  if (qIndex >= questions.length) showResult();
+  else renderQuestion();
+}
+
+/* ── PILGAN ── */
+function buildPilgan(card, q) {
+  const opts = document.createElement('div');
+  opts.className = 'options';
+  const keys = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = '<span class="opt-key">'+keys[i]+'</span>'+opt;
+    btn.onclick = () => {
+      const btns = opts.querySelectorAll('.opt');
+      btns.forEach(b => b.disabled = true);
+      const correct = i===q.answer;
+      btn.classList.add(correct?'correct':'wrong');
+      if (!correct) btns[q.answer].classList.add('correct');
+      recordResult(q.topic, correct);
+      showFeedback(correct, correct ? q.explanation : "Jawaban yang benar: "+keys[q.answer]+". "+q.explanation);
+    };
+    opts.appendChild(btn);
+  });
+  card.appendChild(opts);
+}
+
+/* ── BENAR SALAH ── */
+function buildBenarSalah(card, q) {
+  const row = document.createElement('div');
+  row.className = 'bs-btn-row';
+  ['Benar','Salah'].forEach(label => {
+    const btn = document.createElement('button');
+    btn.className = 'bs-btn '+label.toLowerCase();
+    btn.textContent = label==='Benar' ? '✅ Benar' : '❌ Salah';
+    btn.onclick = () => {
+      row.querySelectorAll('.bs-btn').forEach(b => b.disabled=true);
+      const correct = (label==='Benar')===q.answer;
+      recordResult(q.topic, correct);
+      showFeedback(correct, correct ? q.explanation : "Jawaban yang benar: "+(q.answer?'Benar':'Salah')+". "+q.explanation);
+    };
+    row.appendChild(btn);
+  });
+  card.appendChild(row);
+}
+
+/* ── SUSUN ── */
+function buildSusun(card, q) {
+  const poolWords = shuffle(q.words);
+  let answerArr = [], usedIndices = new Set();
+
+  const lbl1 = document.createElement('p');
+  lbl1.className='susun-label'; lbl1.textContent='Jawaban kamu:';
+  card.appendChild(lbl1);
+
+  const answerDiv = document.createElement('div');
+  answerDiv.className = 'word-answer';
+
+  const lbl2 = document.createElement('p');
+  lbl2.className='susun-label'; lbl2.textContent='Kata tersedia (klik untuk memilih):';
+
+  const poolDiv = document.createElement('div');
+  poolDiv.className = 'word-pool';
+
+  function renderPool() {
+    poolDiv.innerHTML='';
+    poolWords.forEach((w,i)=>{
+      if(usedIndices.has(i)) return;
+      const chip=document.createElement('button');
+      chip.className='word-chip'; chip.textContent=w;
+      chip.onclick=()=>{ sfxClick(); usedIndices.add(i); answerArr.push({w,i}); renderAll(); };
+      poolDiv.appendChild(chip);
+    });
+  }
+  function renderAnswer() {
+    answerDiv.innerHTML='';
+    answerArr.forEach((item,pos)=>{
+      const chip=document.createElement('button');
+      chip.className='word-chip in-answer'; chip.textContent=item.w;
+      chip.onclick=()=>{ sfxClick(); usedIndices.delete(item.i); answerArr.splice(pos,1); renderAll(); };
+      answerDiv.appendChild(chip);
+    });
+  }
+  function renderAll(){ renderPool(); renderAnswer(); }
+
+  card.appendChild(answerDiv);
+  card.appendChild(lbl2);
+  card.appendChild(poolDiv);
+  renderAll();
+
+  const checkBtn=document.createElement('button');
+  checkBtn.className='btn-next show'; checkBtn.style.marginTop='0.8rem';
+  checkBtn.textContent='Periksa Jawaban ✓';
+  checkBtn.onclick=()=>{
+    const userAnswer=answerArr.map(a=>a.w);
+    const correct=JSON.stringify(userAnswer)===JSON.stringify(q.answer);
+    answerDiv.querySelectorAll('.word-chip').forEach((chip,i)=>{
+      chip.disabled=true; chip.classList.remove('in-answer');
+      chip.classList.add(userAnswer[i]===q.answer[i]?'correct-chip':'wrong-chip');
+    });
+    poolDiv.querySelectorAll('.word-chip').forEach(c=>c.disabled=true);
+    checkBtn.remove();
+    recordResult(q.topic,correct);
+    showFeedback(correct,correct?q.explanation:"Jawaban benar: "+q.answer.join(' ')+". "+q.explanation);
+  };
+  card.appendChild(checkBtn);
+}
+
+/* ── TEBAK ── */
+function buildTebak(card, q) {
+  const word=q.answer.toUpperCase();
+  let filled=Array(word.length).fill('');
+
+  const hintP=document.createElement('p');
+  hintP.style.cssText='color:var(--muted);font-size:0.85rem;margin-bottom:0.8rem;';
+  hintP.textContent='💡 '+q.hint;
+  card.appendChild(hintP);
+
+  const blanksDiv=document.createElement('div');
+  blanksDiv.className='blanks';
+  const boxes=[];
+  word.split('').forEach(()=>{
+    const b=document.createElement('div');
+    b.className='blank-box'; boxes.push(b); blanksDiv.appendChild(b);
+  });
+  card.appendChild(blanksDiv);
+
+  const wordLetters=[...new Set(word.split(''))];
+  const extras=shuffle('ABCDEFGHIJKLMNOPRSTUW'.split('').filter(l=>!wordLetters.includes(l))).slice(0,Math.max(4,8-wordLetters.length));
+  const letterSet=shuffle([...wordLetters,...extras]).slice(0,14);
+
+  const hintRow=document.createElement('div');
+  hintRow.className='hint-row';
+
+  letterSet.forEach(l=>{
+    const btn=document.createElement('button');
+    btn.className='letter-btn'; btn.textContent=l; btn.dataset.letter=l;
+    btn.onclick=()=>{
+      const idx=filled.indexOf('');
+      if(idx===-1) return;
+      sfxClick();
+      filled[idx]=l; boxes[idx].textContent=l; boxes[idx].classList.add('filled');
+      btn.disabled=true;
+      if(!filled.includes('')) checkTebak();
+    };
+    hintRow.appendChild(btn);
+  });
+
+  const bkBtn=document.createElement('button');
+  bkBtn.className='letter-btn'; bkBtn.style.fontSize='1rem'; bkBtn.textContent='⌫';
+  bkBtn.onclick=()=>{
+    const lastIdx=filled.map((v,i)=>({v,i})).filter(x=>x.v).pop();
+    if(!lastIdx) return;
+    sfxClick();
+    const letter=filled[lastIdx.i];
+    filled[lastIdx.i]=''; boxes[lastIdx.i].textContent=''; boxes[lastIdx.i].classList.remove('filled');
+    const btns=hintRow.querySelectorAll('.letter-btn');
+    for(let b of btns){ if(b.dataset.letter===letter&&b.disabled){b.disabled=false;break;} }
+  };
+  hintRow.appendChild(bkBtn);
+  card.appendChild(hintRow);
+
+  function checkTebak(){
+    const userWord=filled.join('');
+    const correct=userWord===word;
+    boxes.forEach((b,i)=>{
+      b.classList.remove('filled');
+      b.classList.add(filled[i]===word[i]?'correct-box':'wrong-box');
+    });
+    hintRow.querySelectorAll('.letter-btn').forEach(b=>b.disabled=true);
+    recordResult(q.topic,correct);
+    showFeedback(correct,correct?"Hebat! Jawabannya memang "+word+". "+q.explanation:"Jawaban yang benar adalah "+word+". "+q.explanation);
+  }
+}
+
+/* ── RESULT ── */
+function showResult() {
+  document.getElementById('progress-fill').style.width='100%';
+  const total=questions.length;
+  const pct=Math.round((score/total)*100);
+
+  sfxComplete();
+
+  let emoji='😊',title='Terus Semangat!',sub='';
+  if(pct===100){emoji='🏆';title='Sempurna!';sub='Kamu menguasai semua materi sastra!';}
+  else if(pct>=80){emoji='⭐';title='Luar Biasa!';sub='Hampir sempurna! Terus berlatih ya.';}
+  else if(pct>=60){emoji='👍';title='Bagus!';sub='Kamu sudah paham banyak materi.';}
+  else if(pct>=40){emoji='📚';title='Terus Belajar!';sub='Masih ada yang perlu dipelajari lagi.';}
+  else{emoji='💪';title='Semangat!';sub='Coba lagi dan kuasai materi sastranya!';}
+
+  document.getElementById('result-emoji').textContent=emoji;
+  document.getElementById('result-title').textContent=title;
+  document.getElementById('result-score').textContent=score+" / "+total;
+  document.getElementById('result-sub').textContent=sub;
+
+  const barsDiv=document.getElementById('result-bars');
+  barsDiv.innerHTML='';
+  Object.entries(topicStats).forEach(([topic,stat])=>{
+    const p=Math.round((stat.correct/stat.total)*100);
+    const row=document.createElement('div');
+    row.className='rbar';
+    row.innerHTML='<span class="rbar-label">'+topic+'</span><div class="rbar-track"><div class="rbar-fill" style="width:'+p+'%"></div></div><span class="rbar-val">'+p+'%</span>';
+    barsDiv.appendChild(row);
+  });
+
+  showScreen('result');
+
+  // confetti
+  if(pct>=60){
+    const colors=['#d4a017','#27ae60','#3498db','#e74c3c','#9b59b6','#f39c12'];
+    for(let i=0;i<60;i++){
+      const el=document.createElement('div');
+      el.className='confetti-piece';
+      el.style.cssText=`
+        left:${Math.random()*100}%;
+        top:-10px;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        animation-duration:${1.5+Math.random()*2}s;
+        animation-delay:${Math.random()*1.5}s;
+        transform:rotate(${Math.random()*360}deg);
+      `;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),4000);
+    }
+  }
+}
+</script>
+</body>
+</html>
