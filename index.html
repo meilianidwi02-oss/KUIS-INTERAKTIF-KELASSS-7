@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuis Bahasa Indonesia - Kelas 7</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1b2d;
+    --card: #162236;
+    --card2: #1a2a40;
+    --accent: #f9c74f;
+    --accent2: #f3722c;
+    --accent3: #43aa8b;
+    --correct: #43aa8b;
+    --wrong: #f94144;
+    --text: #e8f4f8;
+    --muted: #8baac4;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-image: radial-gradient(ellipse at 20% 20%, #1e3a5f33 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 80%, #f3722c18 0%, transparent 60%);
+  }
+
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.4); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  /* ── WELCOME SCREEN ── */
+  #welcome {
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #1a1a1a;
+    font-weight: 800;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.2rem, 6vw, 3.5rem);
+    line-height: 1.1;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--accent) 0%, #fff 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .info-card {
+    background: var(--card);
+    border: 1px solid #ffffff10;
+    border-radius: var(--radius);
+    padding: 18px 12px;
+    text-align: center;
+  }
+
+  .info-card .icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .info-card .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .info-card .value { font-weight: 800; font-size: 1rem; }
+
+  .btn-start {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #1a1a1a;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 30px #f3722c44;
+  }
+
+  .btn-start:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px #f3722c66;
+  }
+
+  .btn-start:active { transform: translateY(0); }
+
+  /* ── QUIZ SCREEN ── */
+  #quiz { display: none; animation: fadeUp 0.5s ease both; }
+
+  .progress-bar-wrap {
+    background: var(--card);
+    border-radius: 99px;
+    height: 8px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+
+  .quiz-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .q-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: var(--muted);
+  }
+
+  .q-num span { color: var(--accent); font-size: 1.2rem; }
+
+  .score-badge {
+    background: var(--card);
+    border: 1px solid #ffffff15;
+    border-radius: 99px;
+    padding: 6px 16px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .question-card {
+    background: var(--card);
+    border: 1px solid #ffffff10;
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+  }
+
+  .question-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.6;
+  }
+
+  .options-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .option-btn {
+    width: 100%;
+    padding: 16px 20px;
+    background: var(--card2);
+    border: 2px solid #ffffff12;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: #1e3a5f;
+    transform: translateX(4px);
+  }
+
+  .option-letter {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #ffffff12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .option-btn.correct {
+    border-color: var(--correct);
+    background: #43aa8b18;
+    animation: pulse-correct 0.4s ease;
+  }
+
+  .option-btn.correct .option-letter { background: var(--correct); color: white; }
+
+  .option-btn.wrong {
+    border-color: var(--wrong);
+    background: #f9414418;
+    animation: shake 0.4s ease;
+  }
+
+  .option-btn.wrong .option-letter { background: var(--wrong); color: white; }
+
+  .option-btn:disabled { cursor: default; }
+
+  @keyframes pulse-correct {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .feedback {
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .feedback.show { display: flex; align-items: flex-start; gap: 10px; }
+  .feedback.correct-fb { background: #43aa8b20; border: 1px solid var(--correct); color: #7ee8c8; }
+  .feedback.wrong-fb { background: #f9414420; border: 1px solid var(--wrong); color: #ff8b8d; }
+
+  .btn-next {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--accent3);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: none;
+    transition: all 0.2s;
+    box-shadow: 0 6px 20px #43aa8b44;
+  }
+
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 10px 30px #43aa8b66; }
+  .btn-next.show { display: block; animation: fadeUp 0.3s ease; }
+
+  /* ── RESULT SCREEN ── */
+  #result {
+    display: none;
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .result-emoji {
+    font-size: 5rem;
+    margin-bottom: 16px;
+    animation: bounce 1s ease infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .result-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .result-subtitle { color: var(--muted); margin-bottom: 32px; font-size: 0.95rem; }
+
+  .score-display {
+    background: var(--card);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .score-display::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, var(--accent)12, transparent 70%);
+    pointer-events: none;
+  }
+
+  .score-number {
+    font-family: 'Fredoka One', cursive;
+    font-size: 5rem;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .score-label { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    border: 1px solid #ffffff10;
+  }
+
+  .stat-card .s-icon { font-size: 1.5rem; margin-bottom: 8px; }
+  .stat-card .s-val { font-family: 'Fredoka One', cursive; font-size: 1.6rem; }
+  .stat-card .s-lbl { color: var(--muted); font-size: 0.75rem; }
+
+  .btn-retry {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #1a1a1a;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 8px 30px #f3722c44;
+  }
+
+  .btn-retry:hover { transform: translateY(-3px); box-shadow: 0 12px 40px #f3722c66; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    top: -20px;
+    animation: confettiFall linear forwards;
+    z-index: 999;
+    border-radius: 2px;
+  }
+
+  @keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Stars Background -->
+<div class="stars" id="stars"></div>
+
+<div class="container">
+
+  <!-- WELCOME -->
+  <div id="welcome">
+    <div class="badge">📚 Kelas 7</div>
+    <h1>Kuis Bahasa Indonesia</h1>
+    <p class="subtitle">Uji pemahamanmu tentang materi Bahasa Indonesia Kelas 7.<br>Ada 10 soal pilihan ganda menantimu!</p>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="icon">❓</div>
+        <div class="label">Soal</div>
+        <div class="value">10 Soal</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">⭐</div>
+        <div class="label">Nilai Maks</div>
+        <div class="value">100</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">🏆</div>
+        <div class="label">Target</div>
+        <div class="value">≥ 70</div>
+      </div>
+    </div>
+    <button class="btn-start" onclick="startQuiz()">🚀 Mulai Kuis!</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="quiz-meta">
+      <div class="q-num">Soal <span id="qNum">1</span>/10</div>
+      <div class="score-badge">⭐ <span id="liveScore">0</span></div>
+    </div>
+    <div class="question-card">
+      <p class="question-text" id="questionText"></p>
+    </div>
+    <div class="options-grid" id="optionsGrid"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn-next" id="btnNext" onclick="nextQuestion()">Soal Berikutnya →</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title" id="resultTitle">Luar Biasa!</div>
+    <p class="result-subtitle" id="resultSubtitle"></p>
+    <div class="score-display">
+      <div class="score-number" id="finalScore">0</div>
+      <div class="score-label">NILAI AKHIR</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="s-icon">✅</div>
+        <div class="s-val" id="correctCount">0</div>
+        <div class="s-lbl">Jawaban Benar</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-icon">❌</div>
+        <div class="s-val" id="wrongCount">0</div>
+        <div class="s-lbl">Jawaban Salah</div>
+      </div>
+    </div>
+    <button class="btn-retry" onclick="resetQuiz()">🔄 Coba Lagi</button>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  {
+    q: "Apa yang dimaksud dengan gagasan pokok dalam sebuah paragraf?",
+    opts: ["Kalimat penjelas yang mendukung isi paragraf", "Ide utama yang menjadi inti dari sebuah paragraf", "Kumpulan kata-kata yang membentuk kalimat", "Paragraf penutup sebuah teks"],
+    ans: 1,
+    exp: "Gagasan pokok adalah ide utama atau inti dari sebuah paragraf yang biasanya terdapat pada kalimat utama."
+  },
+  {
+    q: "Berikut ini yang termasuk ciri-ciri teks deskripsi adalah...",
+    opts: ["Menceritakan urutan kejadian secara kronologis", "Menggambarkan objek secara detail sehingga pembaca seolah melihat langsung", "Berisi pendapat penulis tentang suatu isu", "Menjelaskan langkah-langkah melakukan sesuatu"],
+    ans: 1,
+    exp: "Teks deskripsi bertujuan menggambarkan objek, tempat, atau orang secara rinci sehingga pembaca seolah melihat, mendengar, atau merasakan langsung."
+  },
+  {
+    q: "Kata berimbuhan 'per-an' pada kata 'perjalanan' memiliki makna...",
+    opts: ["Menyatakan tempat melakukan sesuatu", "Menyatakan hasil perbuatan", "Menyatakan proses atau hal yang berhubungan dengan kata dasarnya", "Menyatakan pelaku pekerjaan"],
+    ans: 2,
+    exp: "Imbuhan 'per-an' pada 'perjalanan' menyatakan proses atau hal yang berkaitan dengan 'jalan', yaitu kegiatan berjalan atau bepergian."
+  },
+  {
+    q: "Kalimat 'Buku itu sangat menarik.' termasuk jenis kalimat...",
+    opts: ["Kalimat perintah", "Kalimat tanya", "Kalimat pernyataan (deklaratif)", "Kalimat seru"],
+    ans: 2,
+    exp: "Kalimat deklaratif (pernyataan) adalah kalimat yang menyampaikan informasi atau fakta. Ditandai dengan intonasi menurun di akhir kalimat."
+  },
+  {
+    q: "Sinonim dari kata 'bijaksana' adalah...",
+    opts: ["Bodoh", "Arif", "Serakah", "Lalai"],
+    ans: 1,
+    exp: "Sinonim adalah kata yang memiliki makna sama atau mirip. Kata 'arif' memiliki makna yang sama dengan 'bijaksana', yaitu pandai dan berhati-hati dalam bertindak."
+  },
+  {
+    q: "Dalam struktur teks cerita fantasi, bagian yang berisi penyelesaian masalah disebut...",
+    opts: ["Orientasi", "Komplikasi", "Resolusi", "Klimaks"],
+    ans: 2,
+    exp: "Resolusi adalah bagian akhir teks cerita yang berisi penyelesaian masalah atau konflik yang dialami tokoh."
+  },
+  {
+    q: "Antonim dari kata 'rajin' adalah...",
+    opts: ["Tekun", "Malas", "Giat", "Semangat"],
+    ans: 1,
+    exp: "Antonim adalah kata yang memiliki makna berlawanan. Antonim dari 'rajin' adalah 'malas'."
+  },
+  {
+    q: "Puisi yang terdiri dari empat baris setiap baitnya dan memiliki rima a-b-a-b disebut...",
+    opts: ["Pantun", "Syair", "Gurindam", "Haiku"],
+    ans: 0,
+    exp: "Pantun memiliki ciri khas: 4 baris per bait, 2 baris sampiran dan 2 baris isi, serta bersajak a-b-a-b."
+  },
+  {
+    q: "Kalimat manakah yang menggunakan majas personifikasi?",
+    opts: ["Suaranya bagaikan petir yang menggelegar", "Angin berbisik lembut di telingaku", "Wajahnya seperti bulan purnama", "Dia makan banyak seperti sapi"],
+    ans: 1,
+    exp: "Personifikasi adalah majas yang menggambarkan benda mati seolah-olah memiliki sifat atau kemampuan manusia. 'Angin berbisik' menggambarkan angin seolah bisa berbisik seperti manusia."
+  },
+  {
+    q: "Tujuan utama dari teks prosedur adalah...",
+    opts: ["Meyakinkan pembaca tentang suatu pendapat", "Menggambarkan keindahan suatu objek", "Memberikan petunjuk langkah-langkah melakukan sesuatu", "Menceritakan pengalaman pribadi penulis"],
+    ans: 2,
+    exp: "Teks prosedur bertujuan memberikan petunjuk atau panduan tentang cara melakukan suatu kegiatan secara berurutan."
+  }
+];
+
+let current = 0, score = 0, correct = 0;
+const letters = ['A', 'B', 'C', 'D'];
+
+function makeStar() {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left = Math.random() * 100 + '%';
+  s.style.top = Math.random() * 100 + '%';
+  s.style.animationDelay = Math.random() * 3 + 's';
+  s.style.animationDuration = (2 + Math.random() * 3) + 's';
+  document.getElementById('stars').appendChild(s);
+}
+for (let i = 0; i < 60; i++) makeStar();
+
+function startQuiz() {
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  loadQuestion();
+}
+
+function loadQuestion() {
+  const q = questions[current];
+  document.getElementById('qNum').textContent = current + 1;
+  document.getElementById('progressBar').style.width = (current / 10 * 100) + '%';
+  document.getElementById('questionText').textContent = q.q;
+
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+    btn.onclick = () => selectAnswer(i, btn);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('btnNext').className = 'btn-next';
+}
+
+function selectAnswer(idx, btn) {
+  const q = questions[current];
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+
+  const fb = document.getElementById('feedback');
+
+  if (idx === q.ans) {
+    btn.classList.add('correct');
+    score += 10;
+    correct++;
+    document.getElementById('liveScore').textContent = score;
+    fb.className = 'feedback correct-fb show';
+    fb.innerHTML = '✅ <span><strong>Benar!</strong> ' + q.exp + '</span>';
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.ans].classList.add('correct');
+    fb.className = 'feedback wrong-fb show';
+    fb.innerHTML = '❌ <span><strong>Salah.</strong> ' + q.exp + '</span>';
+  }
+
+  const btnNext = document.getElementById('btnNext');
+  btnNext.className = 'btn-next show';
+  btnNext.textContent = current < 9 ? 'Soal Berikutnya →' : '🏆 Lihat Hasil';
+}
+
+function nextQuestion() {
+  current++;
+  if (current < 10) {
+    loadQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('correctCount').textContent = correct;
+  document.getElementById('wrongCount').textContent = 10 - correct;
+  document.getElementById('progressBar').style.width = '100%';
+
+  let emoji, title, sub;
+  if (score >= 90) { emoji='🏆'; title='Luar Biasa!'; sub='Kamu jenius Bahasa Indonesia! Nilai sempurna!'; }
+  else if (score >= 70) { emoji='🎉'; title='Bagus Sekali!'; sub='Kamu sudah sangat menguasai materi. Pertahankan!'; }
+  else if (score >= 50) { emoji='👍'; title='Cukup Baik!'; sub='Kamu sudah paham beberapa materi. Terus belajar ya!'; }
+  else { emoji='📖'; title='Yuk Belajar Lagi!'; sub='Jangan menyerah! Baca materi dan coba lagi.'; }
+
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultSubtitle').textContent = sub;
+
+  if (score >= 70) launchConfetti();
+}
+
+function resetQuiz() {
+  current = 0; score = 0; correct = 0;
+  document.getElementById('liveScore').textContent = '0';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  loadQuestion();
+}
+
+function launchConfetti() {
+  const colors = ['#f9c74f','#f3722c','#43aa8b','#4cc9f0','#f72585'];
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    c.style.animationDelay = (Math.random() * 1) + 's';
+    c.style.width = c.style.height = (6 + Math.random() * 8) + 'px';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+}
+</script>
+</body>
+</html>
